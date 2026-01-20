@@ -153,9 +153,21 @@ The service will run at `http://localhost:8001`. The main Node.js application ex
 
 ## License
 
+## License
+
 Copyright (c) 2024-2026 Miltiadis Triantafyllou. All rights reserved.
 
-This project is proprietary software. No commercial license is granted for this software. Redistribution or use in source and binary forms, with or without modification, is strictly prohibited without prior written permission from the copyright holder.
+This work is licensed under a **Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)**.
+
+You are free to:
+- **Share** — copy and redistribute the material in any medium or format
+- **Adapt** — remix, transform, and build upon the material
+
+Under the following terms:
+- **Attribution** — You must give appropriate credit, provide a link to the license, and indicate if changes were made.
+- **NonCommercial** — You may not use the material for commercial purposes.
+
+To view a copy of this license, visit http://creativecommons.org/licenses/by-nc/4.0/
 
 ## Contributing
 
