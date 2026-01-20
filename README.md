@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="logo.png" alt="AgoraX Logo" width="200" height="200" />
+  <img src="./logo.png" alt="AgoraX Logo" width="200" height="200" />
   <h1>AgoraX - Digital Democracy Platform</h1>
 </div>
 
