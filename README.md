@@ -153,8 +153,6 @@ The service will run at `http://localhost:8001`. The main Node.js application ex
 
 ## License
 
-## License
-
 Copyright (c) 2024-2026 Miltiadis Triantafyllou. All rights reserved.
 
 This work is licensed under a **Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)**.
