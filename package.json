@@ -1,9 +1,23 @@
 {
-  "name": "rest-express",
+  "name": "agorax-democracy-platform",
   "version": "1.0.0",
+  "description": "A comprehensive digital democracy platform built for Greek citizens to participate in transparent and reliable voting processes.",
+  "private": true,
   "author": "Miltiadis Triantafyllou",
   "type": "module",
   "license": "CC-BY-NC-4.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/miltosdoc/agorax.git"
+  },
+  "keywords": [
+    "democracy",
+    "voting",
+    "gov.gr",
+    "greece",
+    "polls",
+    "civic-tech"
+  ],
   "scripts": {
     "dev": "tsx watch server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
