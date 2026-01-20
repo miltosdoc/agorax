@@ -1,0 +1,384 @@
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Express, Request } from "express";
+import session from "express-session";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
+import { storage } from "./storage";
+import { User as SelectUser } from "@shared/schema";
+import { db, pool } from "./db";
+import { users, User } from "@shared/schema";
+import { eq } from "drizzle-orm";
+
+// Extend session interface to include returnTo property
+declare module "express-session" {
+  interface SessionData {
+    returnTo?: string;
+  }
+}
+
+declare global {
+  namespace Express {
+    interface User extends SelectUser { }
+  }
+}
+
+const scryptAsync = promisify(scrypt);
+
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
+
+async function comparePasswords(supplied: string, stored: string) {
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+export function setupAuth(app: Express) {
+  const sessionSecret = process.env.SESSION_SECRET || "agorax-secret-key-change-in-production";
+
+  const sessionSettings: session.SessionOptions = {
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    store: storage.sessionStore,
+    cookie: {
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    }
+  };
+
+  app.set("trust proxy", 1);
+  app.use(session(sessionSettings));
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  passport.use(
+    new LocalStrategy(async (username, password, done) => {
+      try {
+        const user = await storage.getUserByUsername(username);
+        if (!user || !user.password || !(await comparePasswords(password, user.password))) {
+          return done(null, false);
+        } else {
+          return done(null, user);
+        }
+      } catch (error) {
+        return done(error);
+      }
+    }),
+  );
+
+  // Google OAuth Strategy
+  passport.use(
+    new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      callbackURL: process.env.GOOGLE_CALLBACK_URL || "https://agoraxdemocracy.com/auth/google/callback",
+      scope: ["profile", "email"],
+      proxy: true // This helps with proxied requests
+    },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          // First check if user exists with this Google ID
+          let user = await storage.getUserByProviderId(profile.id, 'google');
+
+          if (user) {
+            // User already exists, return it
+            return done(null, user);
+          }
+
+          // Check if user exists with this email
+          if (profile.emails && profile.emails.length > 0) {
+            const email = profile.emails[0].value;
+            const existingUser = await storage.getUserByEmail(email);
+
+            if (existingUser) {
+              // Update existing user with Google provider details
+              const [updatedUser] = await db
+                .update(users)
+                .set({
+                  providerId: profile.id,
+                  provider: 'google',
+                  profilePicture: profile.photos?.[0]?.value || null
+                })
+                .where(eq(users.id, existingUser.id))
+                .returning();
+
+              return done(null, updatedUser);
+            }
+          }
+
+          // Create a new user with Google profile info
+          const name = profile.displayName || 'User';
+          const email = profile.emails?.[0]?.value || `${profile.id}@gmail.com`;
+
+          // Generate a unique username
+          const baseUsername = (profile.displayName || 'user').toLowerCase().replace(/\s+/g, '');
+          let username = baseUsername;
+          let attempt = 1;
+
+          // Find a unique username
+          while (true) {
+            const existingUser = await storage.getUserByUsername(username);
+            if (!existingUser) break;
+            username = `${baseUsername}${attempt}`;
+            attempt++;
+          }
+
+          // Create the new user
+          const newUser = await storage.createUser({
+            username,
+            name,
+            email,
+            provider: 'google',
+            providerId: profile.id,
+            profilePicture: profile.photos?.[0]?.value || null
+          });
+
+          return done(null, newUser);
+        } catch (error) {
+          return done(error);
+        }
+      })
+  );
+
+  passport.serializeUser((user, done) => done(null, user.id));
+  passport.deserializeUser(async (id: number, done) => {
+    try {
+      const user = await storage.getUser(id);
+      done(null, user);
+    } catch (error) {
+      done(error);
+    }
+  });
+
+  app.post("/api/register", async (req, res, next) => {
+    try {
+      // Store any returnTo info
+      const returnTo = req.body.returnTo || '/home';
+
+      // Log for debugging
+      console.log('Register endpoint received returnTo:', returnTo);
+
+      // Extract client IP
+      const clientIp = (req.ip || req.headers['x-forwarded-for'] || (req.connection as any).remoteAddress) as string;
+      const deviceFingerprint = req.body.deviceFingerprint;
+
+      // Check for duplicate accounts if we have fingerprint and IP
+      if (deviceFingerprint && clientIp) {
+        const duplicateCount = await storage.checkDuplicateAccounts(deviceFingerprint, clientIp);
+        if (duplicateCount >= 3) {
+          return res.status(400).send("Έχετε φτάσει το όριο λογαριασμών από αυτήν τη συσκευή");
+        }
+      }
+
+      // Check for existing user
+      const existingUsername = await storage.getUserByUsername(req.body.username);
+      if (existingUsername) {
+        return res.status(400).send("Το όνομα χρήστη υπάρχει ήδη");
+      }
+
+      // Check for existing email
+      const existingEmail = await storage.getUserByEmail(req.body.email);
+      if (existingEmail) {
+        return res.status(400).send("Το email χρησιμοποιείται ήδη");
+      }
+
+      // Remove returnTo and deviceFingerprint from the data saved to the database
+      const { returnTo: _, deviceFingerprint: __, ...userData } = req.body;
+
+      const user = await storage.createUser({
+        ...userData,
+        password: await hashPassword(req.body.password),
+        deviceFingerprint: deviceFingerprint || null,
+        registrationIp: clientIp || null,
+        lastLoginIp: clientIp || null,
+        accountStatus: 'active',
+      });
+
+      // Log account activity
+      await storage.createAccountActivity({
+        userId: user.id,
+        deviceFingerprint: deviceFingerprint || null,
+        ipAddress: clientIp || null,
+        action: 'registration',
+        userAgent: req.headers['user-agent'] || null,
+      });
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+
+        // Also store in session for redundancy
+        req.session.returnTo = returnTo;
+
+        // Include returnTo in the response
+        res.status(201).json({
+          ...user,
+          returnTo
+        });
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/login", (req, res, next) => {
+    // Store any returnTo info from the session or request body
+    const returnTo = req.body.returnTo || '/home';
+
+    // Log for debugging
+    console.log('Login endpoint received returnTo:', returnTo);
+
+    // Extract client IP and device fingerprint
+    const clientIp = (req.ip || req.headers['x-forwarded-for'] || (req.connection as any).remoteAddress) as string;
+    const deviceFingerprint = req.body.deviceFingerprint;
+
+    passport.authenticate("local", async (err: Error | null, user: User | false, info: any) => {
+      if (err) return next(err);
+      if (!user) return res.status(401).json({ message: "Authentication failed" });
+
+      // Check if account is banned
+      if (user.accountStatus === 'banned') {
+        return res.status(403).send("Ο λογαριασμός σας έχει αποκλειστεί");
+      }
+
+      // Update last login IP
+      try {
+        if (clientIp) {
+          await storage.updateUserLoginInfo(user.id, { lastLoginIp: clientIp });
+        }
+
+        // Log account activity
+        await storage.createAccountActivity({
+          userId: user.id,
+          deviceFingerprint: deviceFingerprint || null,
+          ipAddress: clientIp || null,
+          action: 'login',
+          userAgent: req.headers['user-agent'] || null,
+        });
+      } catch (updateErr) {
+        console.error('Error updating login info:', updateErr);
+      }
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+
+        // Store the redirect URL in the session as well, for redundancy
+        req.session.returnTo = returnTo;
+
+        // Include returnTo in the response so client can redirect
+        return res.status(200).json({
+          ...user,
+          returnTo: returnTo
+        });
+      });
+    })(req, res, next);
+  });
+
+  app.post("/api/logout", (req, res, next) => {
+    req.logout((err) => {
+      if (err) return next(err);
+      res.sendStatus(200);
+    });
+  });
+
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    res.json(req.user);
+  });
+
+  // Delete user account endpoint
+  app.delete("/api/user", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Πρέπει να είστε συνδεδεμένοι για να διαγράψετε τον λογαριασμό σας" });
+    }
+
+    try {
+      const userId = req.user.id;
+      const { deletePolls } = req.query;
+
+      // Convert query param to boolean
+      const shouldDeletePolls = deletePolls === 'true';
+
+      // Delete the user and handle their polls according to preference
+      const success = await storage.deleteUser(userId, shouldDeletePolls);
+
+      if (success) {
+        // Log the user out after successful deletion
+        req.logout((err) => {
+          if (err) {
+            console.error("Error logging out after account deletion:", err);
+            // Still return success even if logout fails
+          }
+
+          res.json({
+            success: true,
+            message: shouldDeletePolls
+              ? "Ο λογαριασμός σας και όλες οι ψηφοφορίες σας έχουν διαγραφεί επιτυχώς"
+              : "Ο λογαριασμός σας έχει διαγραφεί επιτυχώς. Οι ψηφοφορίες σας έχουν μεταφερθεί στην κοινότητα"
+          });
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "Υπήρξε πρόβλημα κατά τη διαγραφή του λογαριασμού σας"
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({
+        success: false,
+        message: "Σφάλμα κατά τη διαγραφή του λογαριασμού"
+      });
+    }
+  });
+
+  // Google OAuth routes
+  app.get('/auth/google', (req, res, next) => {
+    // Store the returnTo URL in the session
+    if (req.query.returnTo) {
+      // Log the returnTo URL for debugging
+      console.log('Setting returnTo in session:', req.query.returnTo);
+      req.session.returnTo = req.query.returnTo as string;
+    }
+
+    passport.authenticate('google', {
+      scope: ['profile', 'email']
+    })(req, res, next);
+  });
+
+  app.get('/auth/google/callback', (req, res, next) => {
+    passport.authenticate('google', (err: Error | null, user: User | false, info: any) => {
+      if (err) {
+        console.error('Google auth error:', err);
+        return res.redirect('/?error=authentication_failed');
+      }
+
+      if (!user) {
+        console.error('Google auth failed, no user:', info);
+        return res.redirect('/?error=authentication_failed');
+      }
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Login error after Google auth:', err);
+          return res.redirect('/?error=login_failed');
+        }
+
+        // Get the returnTo URL from the session and clear it
+        const returnTo = req.session.returnTo || '/home';
+        delete req.session.returnTo;
+
+        // Log for debugging
+        console.log('Redirecting after Google auth to:', returnTo);
+
+        // Redirect to the original URL or homepage after successful authentication
+        return res.redirect(returnTo);
+      });
+    })(req, res, next);
+  });
+}

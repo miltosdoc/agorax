@@ -1,0 +1,101 @@
+Certainly! Here's a clear and developer-friendly explanation you can give to your coding agent to implement the location-based feature in your voting app:
+
+---
+
+### 📍 Feature: Location-Based Polling System
+
+#### ✅ **Goal**
+
+Introduce a feature that:
+
+1. Detects user location via GPS (City, Region, Country).
+2. Asks the user to confirm the detected location.
+3. Stores this location with the user's profile.
+4. Uses this stored location to:
+
+   * Filter which polls a user **can vote in**.
+   * Allow poll creators to **target polls** by City, Region, Country, or Global.
+
+---
+
+### 🔧 Step-by-Step Functional Flow
+
+#### 1. **User Location Detection on App Launch or Registration**
+
+* Request **GPS permission** from the user.
+* Use the GPS coordinates to **reverse geocode** into:
+
+  * `city`
+  * `region` (state/province)
+  * `country`
+
+#### 2. **Location Confirmation**
+
+* Show the detected location:
+  *"We detected you're in Gothenburg, Västra Götaland, Sweden. Is this correct?"*
+* Provide two options:
+
+  * ✅ **Yes, that's correct** → Save location to user profile.
+  * 🔁 **No, try again** → Re-attempt location detection or allow manual input.
+
+#### 3. **Storing User Location**
+
+* Save the location (city, region, country) in the user’s profile in your database.
+
+#### 4. **Poll Creation**
+
+* When creating a poll, provide an option to set:
+
+  * Location restriction: `City`, `Region`, `Country`, or `Global`
+  * Example:
+    *"This poll is open to voters in Malmö, Skåne, Sweden"*
+    or
+    *"This poll is Global"*
+
+#### 5. **Voting Eligibility**
+
+* All users **see all polls**, but:
+
+  * A user **can only vote** if their stored location **matches** or **is within** the poll’s allowed region:
+
+    * City-level polls: Only users in that city.
+    * Region-level: Users in that region.
+    * Country-level: Users in that country.
+    * Global: All users can vote.
+
+---
+
+### 💡 Example Logic for Voting Access
+
+```python
+def can_vote(user_location, poll_location_scope, poll_location):
+    if poll_location_scope == "Global":
+        return True
+    if poll_location_scope == "Country":
+        return user_location["country"] == poll_location["country"]
+    if poll_location_scope == "Region":
+        return (
+            user_location["country"] == poll_location["country"] and
+            user_location["region"] == poll_location["region"]
+        )
+    if poll_location_scope == "City":
+        return (
+            user_location["country"] == poll_location["country"] and
+            user_location["region"] == poll_location["region"] and
+            user_location["city"] == poll_location["city"]
+        )
+    return False
+```
+
+---
+
+### 🔐 Privacy Note
+
+Make sure to:
+
+* Only store location if the user grants permission.
+* Allow users to update/change their saved location later in settings.
+
+---
+
+Would you like me to provide a sample UI mockup or data model for this too?

@@ -1,0 +1,56 @@
+Feature Request: Standardize Location Selection Across Application
+
+Objective:
+Create a consistent location selection system using a predefined location list across all application components (profile settings, poll creation, vote modal, and location filters).
+
+Key Requirements:
+1. Use the SAME predefined location list in:
+   - User profile location (manual input)
+   - Poll creation form
+   - Vote modal
+   - Location filters
+
+2. Location Matching Logic:
+   - Do NOT match using GPS coordinates EXCEPT for geofencing votes
+   - For geofencing votes ONLY, continue to use GPS coordinates as currently implemented
+   - For all other location matching, use exact text comparison from the predefined list
+   - Ensure consistency between poll-form, vote-modal, and user profile location
+
+3. User Experience:
+   - If a user has set their location via GPS but tries to create a poll:
+     → Show a message prompting them to update their location using the predefined list
+   - If a user has set their location from the predefined list but tries to use GPS:
+     → Show a message explaining the need to use the predefined list
+
+4. Dropdown Functionality:
+   - CRITICAL: Maintain current dropdown list functionality
+   - Users MUST be able to select country, region, city, etc. from dropdown lists exactly as they do now
+   - Any changes to the selection mechanism will NOT be accepted
+
+5. Poll Form Default State:
+   - The poll form MUST NOT have any preselected values for:
+     → City
+     → Region
+     → Country
+   - All location fields must start empty/unselected
+
+6. Database & Validation (CRITICAL):
+   - FOCUS on consistent database storage of:
+     → User location
+     → Vote location restrictions
+   - Store locations in a standardized format using values from the predefined list
+   - Implement robust validation to identify location mismatches
+   - Prevent unauthorized users from casting votes when their location doesn't match poll requirements
+   - Validation must occur server-side to ensure security
+
+7. Constraints:
+   - Do NOT modify existing Geofencing settings
+   - Geofencing votes should continue to use GPS coordinates as currently implemented
+
+Technical Implementation Notes:
+- The predefined location list should be stored in a single place and referenced by all components
+- Validation should occur on form submission AND server-side before accepting votes
+- User-friendly error messages should clearly explain the required action
+- Ensure backward compatibility with existing dropdown UI components
+- Database schema should support efficient location-based queries and validation
+- Maintain separate logic paths for geofencing vs. predefined-list location validation

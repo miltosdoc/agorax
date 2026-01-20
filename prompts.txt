@@ -1,0 +1,8 @@
+Now you need to fix a bug. Please focus on the problem without changing irrelevant parts of our app. Do not over complicate the problem and strive for a minimalistic solution, compatible with the rest of the app and oriented to the core function and problem. Robustness is a virtue that i am aiming for. 
+The problem:
+
+Now lets do some changes. Please focus on the actual change without changing irrelevant parts of our app. Do not over complicate the problem and strive for a minimalistic solution, compatible with the rest of the app and oriented to the core function and change. Robustness is a virtue that i am aiming for.  If we change components that need to be translated then do the translations as well.
+The change:
+
+Now lets add a new feature. Please focus on the actual change/new feature without changing irrelevant parts of our app and codebase. Do not over complicate the solution and strive for a minimalistic solution, compatible with the rest of the app and oriented to the core function and the new feature. Robustness is a virtue that i am aiming for.  If we change components that need to be translated then do the translations as well.
+The new feature:

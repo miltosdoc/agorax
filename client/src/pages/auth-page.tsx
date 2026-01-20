@@ -1,0 +1,443 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { loginUserSchema, registerUserSchema } from "@shared/schema";
+import { FcGoogle } from "react-icons/fc";
+import t from "@/i18n";
+import logoImage from "../assets/logo.png";
+import FingerprintJS from '@fingerprintjs/fingerprintjs';
+
+async function getFingerprint(): Promise<string | undefined> {
+  try {
+    const fp = await FingerprintJS.load();
+    const result = await fp.get();
+    return result.visitorId;
+  } catch (error) {
+    console.error('Failed to get device fingerprint:', error);
+    return undefined;
+  }
+}
+
+export default function AuthPage() {
+  const [location, navigate] = useLocation();
+  const { user, loginMutation, registerMutation } = useAuth();
+  
+  // Extract URL parameters
+  const params = new URLSearchParams(location.split("?")[1]);
+  const returnTo = params.get("returnTo") || "/home";
+  
+  const [tab, setTab] = useState(() => {
+    // Check if URL has a tab parameter
+    return params.get("tab") === "register" ? "register" : "login";
+  });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      // Use relative path without domain for internal navigation
+      const path = returnTo.startsWith('http') ? 
+        new URL(returnTo).pathname : 
+        returnTo;
+      navigate(path);
+    }
+  }, [user, navigate, returnTo]);
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Left side - Auth forms */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="flex flex-col items-center">
+              <img 
+                src={logoImage} 
+                alt="AgoraX Logo" 
+                className="h-20 w-auto mb-3" 
+              />
+              <h1 className="text-3xl font-bold text-primary">AgoraX</h1>
+              <p className="text-muted-foreground mt-2">
+                {t("Digital Democracy Platform")}
+              </p>
+            </div>
+          </div>
+
+          <Tabs value={tab} onValueChange={setTab} className="w-full">
+            <TabsList className="grid grid-cols-2 w-full mb-6">
+              <TabsTrigger value="login">{t("Login")}</TabsTrigger>
+              <TabsTrigger value="register">{t("Register")}</TabsTrigger>
+            </TabsList>
+            <TabsContent value="login">
+              <LoginForm onSubmit={() => {
+                // Use relative path without domain for internal navigation
+                const path = returnTo.startsWith('http') ? 
+                  new URL(returnTo).pathname : 
+                  returnTo;
+                navigate(path);
+              }} />
+            </TabsContent>
+            <TabsContent value="register">
+              <RegisterForm onSubmit={() => {
+                // Use relative path without domain for internal navigation
+                const path = returnTo.startsWith('http') ? 
+                  new URL(returnTo).pathname : 
+                  returnTo;
+                navigate(path);
+              }} />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+
+      {/* Right side - Hero content */}
+      <div className="hidden lg:w-1/2 lg:flex flex-col bg-primary text-white p-10 items-center justify-center">
+        <div className="max-w-lg">
+          <h2 className="text-4xl font-bold mb-6">
+            Καλωσορίσατε στην πλατφόρμα ψηφιακής δημοκρατίας
+          </h2>
+          <p className="text-lg mb-8">
+            Η AgoraX είναι ένας διαδικτυακός χώρος για διαβούλευση και ψηφοφορία πάνω σε πολιτικές προτάσεις. 
+            Είναι μια πλατφόρμα για μια πιο ανοιχτή και συμμετοχική διακυβέρνηση.
+          </p>
+          <div className="space-y-4">
+            <div className="flex items-start">
+              <div className="bg-white/20 p-2 rounded-full mr-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-xl">Δημιουργήστε ψηφοφορίες</h3>
+                <p>Προτείνετε τις ιδέες σας και αφήστε την κοινότητα να αποφασίσει</p>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <div className="bg-white/20 p-2 rounded-full mr-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                  <path d="M2 20h.01" />
+                  <path d="M7 20v-4" />
+                  <path d="M12 20v-8" />
+                  <path d="M17 20V8" />
+                  <path d="M22 4v16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-xl">Συμμετέχετε σε ψηφοφορίες</h3>
+                <p>Ψηφίστε για τις προτάσεις που σας ενδιαφέρουν</p>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <div className="bg-white/20 p-2 rounded-full mr-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                  <rect width="18" height="18" x="3" y="3" rx="2" />
+                  <path d="M8 12h8" />
+                  <path d="M12 8v8" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-xl">Διαχειριστείτε τη διάρκεια</h3>
+                <p>Ορίστε και επεκτείνετε τη διάρκεια των ψηφοφοριών σας</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginForm({ onSubmit }: { onSubmit: () => void }) {
+  const { loginMutation } = useAuth();
+  const [location] = useLocation();
+  
+  // Extract the returnTo parameter from URL
+  const params = new URLSearchParams(location.split("?")[1]);
+  const returnTo = params.get("returnTo");
+
+  const form = useForm<z.infer<typeof loginUserSchema>>({
+    resolver: zodResolver(loginUserSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
+
+  const handleSubmit = async (values: z.infer<typeof loginUserSchema>) => {
+    // Capture device fingerprint
+    const deviceFingerprint = await getFingerprint();
+    
+    // Extract returnTo parameter directly from URL for more reliability
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlReturnTo = searchParams.get('returnTo');
+    
+    // Use URL param first, then component state, then default
+    const finalReturnTo = urlReturnTo || returnTo || '/home';
+    
+    // Log returnTo parameter for debugging
+    console.log('Login form attempting to pass returnTo:', finalReturnTo);
+    
+    // Pass the returnTo parameter with the login request
+    loginMutation.mutate({
+      ...values,
+      deviceFingerprint,
+      returnTo: finalReturnTo
+    }, {
+      onSuccess: onSubmit,
+    });
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("Username")}</FormLabel>
+              <FormControl>
+                <Input placeholder="username" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("Password")}</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="flex justify-end">
+          <Button variant="link" className="px-0 text-sm">
+            {t("Forgot Password?")}
+          </Button>
+        </div>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={loginMutation.isPending}
+        >
+          {loginMutation.isPending ? t("Loading") + "..." : t("Login")}
+        </Button>
+        
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <Separator className="w-full" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background px-2 text-sm text-muted-foreground">
+              {t("Or continue with")}
+            </span>
+          </div>
+        </div>
+        
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full flex items-center justify-center gap-2"
+          onClick={() => {
+            const currentUrl = new URL(window.location.href);
+            const returnToParam = currentUrl.searchParams.get('returnTo') || '/home';
+            // Clean up returnTo URL if it's a full URL
+            const path = returnToParam.startsWith('http') ? 
+              new URL(returnToParam).pathname : 
+              returnToParam;
+            window.location.href = `/auth/google?returnTo=${encodeURIComponent(path)}`;
+          }}
+        >
+          <FcGoogle className="h-5 w-5" />
+          {t("Sign in with Google")}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
+function RegisterForm({ onSubmit }: { onSubmit: () => void }) {
+  const { registerMutation } = useAuth();
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [location] = useLocation();
+  
+  // Extract the returnTo parameter from URL
+  const params = new URLSearchParams(location.split("?")[1]);
+  const returnTo = params.get("returnTo");
+
+  const form = useForm<z.infer<typeof registerUserSchema>>({
+    resolver: zodResolver(registerUserSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+      name: "",
+      email: "",
+    },
+  });
+
+  const handleSubmit = async (values: z.infer<typeof registerUserSchema>) => {
+    if (!acceptTerms) return;
+    
+    // Capture device fingerprint
+    const deviceFingerprint = await getFingerprint();
+    
+    // Extract returnTo parameter directly from URL for more reliability
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlReturnTo = searchParams.get('returnTo');
+    
+    // Use URL param first, then component state, then default
+    const finalReturnTo = urlReturnTo || returnTo || '/home';
+    
+    // Log returnTo parameter for debugging
+    console.log('Register form attempting to pass returnTo:', finalReturnTo);
+    
+    // Pass the returnTo parameter with the register request
+    registerMutation.mutate({
+      ...values,
+      deviceFingerprint,
+      returnTo: finalReturnTo
+    }, {
+      onSuccess: onSubmit,
+    });
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("Full Name")}</FormLabel>
+              <FormControl>
+                <Input placeholder="Όνομα Επώνυμο" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("Email")}</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="email@example.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("Username")}</FormLabel>
+              <FormControl>
+                <Input placeholder="username" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("Password")}</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} />
+              </FormControl>
+              <FormMessage className="text-xs">
+                {t("Password must be at least 8 characters")}
+              </FormMessage>
+            </FormItem>
+          )}
+        />
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="terms"
+            checked={acceptTerms}
+            onCheckedChange={(checked) => setAcceptTerms(!!checked)}
+          />
+          <label
+            htmlFor="terms"
+            className="text-sm text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            {t("I accept the")}{" "}
+            <a href="/terms" className="text-primary hover:underline">
+              {t("Terms of Service")}
+            </a>{" "}
+            {t("and")}{" "}
+            <a href="/privacy" className="text-primary hover:underline">
+              {t("Privacy Policy")}
+            </a>
+          </label>
+        </div>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={registerMutation.isPending || !acceptTerms}
+        >
+          {registerMutation.isPending
+            ? t("Loading") + "..."
+            : t("Register")}
+        </Button>
+        
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <Separator className="w-full" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background px-2 text-sm text-muted-foreground">
+              {t("Or continue with")}
+            </span>
+          </div>
+        </div>
+        
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full flex items-center justify-center gap-2"
+          onClick={() => {
+            const currentUrl = new URL(window.location.href);
+            const returnToParam = currentUrl.searchParams.get('returnTo') || '/home';
+            // Clean up returnTo URL if it's a full URL
+            const path = returnToParam.startsWith('http') ? 
+              new URL(returnToParam).pathname : 
+              returnToParam;
+            window.location.href = `/auth/google?returnTo=${encodeURIComponent(path)}`;
+          }}
+        >
+          <FcGoogle className="h-5 w-5" />
+          {t("Sign up with Google")}
+        </Button>
+      </form>
+    </Form>
+  );
+}

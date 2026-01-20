@@ -1,0 +1,37 @@
+
+Wikipedia
+
+Search
+Hide
+WLE Austria Logo (no text).svg
+Wiki Loves Earth:
+An international photographic contest where you can showcase Sweden's unique natural environment and potentially win a prize.
+Arrow's impossibility theorem
+Article Talk
+Language
+Watch
+Edit
+Learn more
+This section may contain material not related to the topic of the article. (October 2024)
+Arrow's impossibility theorem is a key result in social choice theory, showing that no ranking-based decision rule can satisfy the requirements of rational choice theory.[1] Most notably, Arrow showed that no such rule can satisfy all of a certain set of seemingly simple and reasonable conditions that include independence of irrelevant alternatives, the principle that a choice between two alternatives A and B should not depend on the quality of some third, unrelated option C.[2][3][4]
+
+The result is most often cited in discussions of voting rules.[5] However, Arrow's theorem is substantially broader, and can be applied to methods of social decision-making other than voting. It therefore generalizes Condorcet's voting paradox, and shows similar problems exist for every collective decision-making procedure based on relative comparisons.[1]
+
+Plurality-rule methods like first-past-the-post and ranked-choice (instant-runoff) voting are highly sensitive to spoilers,[6][7] particularly in situations where they are not forced.[8][9] By contrast, majority-rule (Condorcet) methods of ranked voting uniquely minimize the number of spoiled elections[9] by restricting them to rare[10][11] situations called cyclic ties.[8] Under some idealized models of voter behavior (e.g. Black's left-right spectrum), spoiler effects can disappear entirely for these methods.[12][13]
+
+Arrow's theorem does not cover rated voting rules, and thus cannot be used to inform their susceptibility to the spoiler effect. However, Gibbard's theorem shows these methods' susceptibility to strategic voting, and generalizations of Arrow's theorem describe cases where rated methods are susceptible to the spoiler effect.
+
+Background
+Theorem
+Interpretation and practical solutions
+Common misconceptions
+See also
+References
+Further reading
+External links
+Last edited 4 days ago by DBooth
+Wikipedia
+Wikimedia Foundation
+Powered by MediaWiki
+Content is available under CC BY-SA 4.0 unless otherwise noted.
+Privacy policy Contact Wikipedia Code of Conduct Developers Statistics Cookie statement Terms of Use Desktop
