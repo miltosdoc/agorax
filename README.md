@@ -23,7 +23,7 @@ A comprehensive digital democracy platform built for Greek citizens to participa
 - **Unique Voter Verification**: Implements "One Account - One Person - One Vote" using government-issued documents.
 - **Gov.gr Integration**: Validates digital signatures from the Greek government's Gov.gr portal to ensure authentic identities.
 - **Solemn Declaration Verification**: Users must upload a digitally signed Solemn Declaration from Gov.gr to verify their identity.
-- **Anti-Fraud**: Prevents duplicate voting by tracking the hashed TAX ID (AFM) from the uploaded PDF documents.
+- **Anti-Fraud**: Prevents duplicate voting by securely verifying the uniqueness of each voter without storing sensitive personal data.
 
 ### Authentication
 - **Local authentication** with secure password hashing
