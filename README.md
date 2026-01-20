@@ -19,11 +19,17 @@ A comprehensive digital democracy platform built for Greek citizens to participa
 - Geographic region detection for Greek territories
 - Geofenced poll participation based on coordinates
 
+### Identity & Security
+- **Unique Voter Verification**: Implements "One Account - One Person - One Vote" using government-issued documents.
+- **Gov.gr Integration**: Validates digital signatures from the Greek government's Gov.gr portal to ensure authentic identities.
+- **Solemn Declaration Verification**: Users must upload a digitally signed Solemn Declaration from Gov.gr to verify their identity.
+- **Anti-Fraud**: Prevents duplicate voting by tracking the hashed TAX ID (AFM) from the uploaded PDF documents.
+
 ### Authentication
-- Local authentication with secure password hashing
-- Google OAuth integration
-- Session-based authentication with secure cookies
-- Role-based access control (admin/user roles)
+- **Local authentication** with secure password hashing
+- **Google OAuth** integration
+- **Session-based authentication** with secure cookies
+- **Role-based access control** (admin/user roles)
 
 ### Content Management
 - Rich text content creation with TipTap editor
