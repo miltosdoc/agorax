@@ -1,4 +1,8 @@
-# AgoraX - Digital Democracy Platform
+<div align="center">
+  <img src="logo.png" alt="AgoraX Logo" width="200" height="200" />
+  <h1>AgoraX - Digital Democracy Platform</h1>
+</div>
+
 
 A comprehensive digital democracy platform built for Greek citizens to participate in transparent and reliable voting processes. The platform combines modern web technologies with location-based features to enable community-driven decision-making through polls, surveys, and discussions.
 
