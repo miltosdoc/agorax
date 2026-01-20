@@ -153,7 +153,9 @@ The service will run at `http://localhost:8001`. The main Node.js application ex
 
 ## License
 
-This project is proprietary software.
+Copyright (c) 2024-2026 Miltiadis Triantafyllou. All rights reserved.
+
+This project is proprietary software. No commercial license is granted for this software. Redistribution or use in source and binary forms, with or without modification, is strictly prohibited without prior written permission from the copyright holder.
 
 ## Contributing
 
